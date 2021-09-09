@@ -1,21 +1,18 @@
 %top{
-#include <stack.h>
-#define TOKEN_MODE 2
+    #include <stdlib.h>
 
-void doprint(char *);
-void brackremode();
+    #define TOKEN_INVALID 0
+    #define TOKEN_LBRACE 1
+    #define TOKEN_RBRACE 2
+    #define TOKEN_STRING 3
+    #define TOKEN_COLON 4
+    #define TOKEN_COMMA 5
+    #define TOKEN_LBRACK 6
+    #define TOKEN_RBRACK 7
+    #define TOKEN_NUMBER 8
+
+    char **token_names;
 }
-
-%{
-int token_ct   = 0;
-int invalid_ct = 0;
-
-// the brack(et) stack 8)
-Stack brackstack;
-%}
-
-%s in_array
-%s in_array_finished_val
 
 NUMBER      -?(0|[1-9][0-9]*)(\.[0-9]+)?(E|e[-+]?[0-9]+)?
 STRING      \"([^\"|\\|[:cntrl:]]|(\\([\"\\\/bfnrt]|u[0-9]{4})))*\"
@@ -23,69 +20,39 @@ BOOL        true|false
 NULL        null
 WS          [ \r\n\t]*
 
-VALUE       {NUMBER}|{STRING}|{BOOL}|{NULL}
-
-%%
-    /* array scanning */
-"["{WS}                            {
-    BEGIN(in_array);
-    stack_pushc(&brackstack, '[');
-    yymore();
-    }
-
-<in_array>{WS}{VALUE}{WS} {BEGIN(in_array_finished_val);yymore();}
-
-<in_array_finished_val>{WS}","{WS} {BEGIN(in_array);yymore();}
-<in_array_finished_val>{WS}"]"     {
-        BEGIN(INITIAL);
-        if(brackstack.size > 0) {
-            if(stack_popc(&brackstack) == '[') {
-                if(brackstack.size == 0) {
-                    doprint("OBJECT");
-                }
-                else {
-                    yymore();
-                }
-                brackremode();
-            }
-        }
-    }
-
-{NUMBER}	    {doprint("NUMBER");}
-{STRING}        {doprint("STRING");}
-{BOOL}          {doprint("BOOL");}
-{WS}            /* discard whitespace */
-.               {doprint("INVALID"); invalid_ct++;}
 %%
 
-void brackremode() {
-    if(brackstack.size == 0) {
-        BEGIN(INITIAL);
-    }
-    else {
-        char brack = stack_peekc(&brackstack);
-        switch(brack) {
-        case '[':
-            BEGIN(in_array_finished_val);
-        }
-    }
+"{"         {return TOKEN_LBRACE;}
+"}"         {return TOKEN_RBRACE;}
+{STRING}    {return TOKEN_STRING;}
+{NUMBER}    {return TOKEN_NUMBER;}
+":"         {return TOKEN_COLON;}
+{WS}        /* discard whitespace */
+.           {return TOKEN_INVALID;}
+
+%%
+
+void init() {
+    token_names = (char **)malloc(100*sizeof(char *));
+    token_names[TOKEN_INVALID] = "INVALID";
+    token_names[TOKEN_LBRACE] = "LBRACE";
+    token_names[TOKEN_RBRACE] = "RBRACE";
+    token_names[TOKEN_STRING] = "STRING";
+    token_names[TOKEN_COLON] = "COLON";
+    token_names[TOKEN_COMMA] = "COMMA";
+    token_names[TOKEN_LBRACK] = "LBRACK";
+    token_names[TOKEN_RBRACK] = "RBRACK";
+    token_names[TOKEN_NUMBER] = "NUMBER";
 }
 
-void doprint(char *ttype) {
-    if(TOKEN_MODE == 2) {       // print token type and value
-        printf("<%s:%s>\n", ttype, yytext);
-    }
-    else if(TOKEN_MODE == 1) {  // print token
-        printf("<%s>\n", ttype);
-    }
-    token_ct++;
+void done() {
+    free(token_names);
 }
 
 int main() {
-    stack_init(&brackstack);
-
-    yylex();
-    printf("Parsed %d token(s), %d of which were invalid.\n", token_ct, invalid_ct);
+    init();
+    for(int token = yylex();;token = yylex()) {printf("<%s>\n",token_names[token]);}
+    done();
 }
 
 int yywrap() {
