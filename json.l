@@ -1,17 +1,22 @@
 %top{
     #include <stdlib.h>
 
-    #define TOKEN_INVALID 0
-    #define TOKEN_LBRACE 1
-    #define TOKEN_RBRACE 2
-    #define TOKEN_STRING 3
-    #define TOKEN_COLON 4
-    #define TOKEN_COMMA 5
-    #define TOKEN_LBRACK 6
-    #define TOKEN_RBRACK 7
-    #define TOKEN_NUMBER 8
+    #define TOKEN_INVALID 1
+    #define TOKEN_LBRACE 2
+    #define TOKEN_RBRACE 3
+    #define TOKEN_STRING 4
+    #define TOKEN_COLON 5
+    #define TOKEN_COMMA 6
+    #define TOKEN_LBRACK 7
+    #define TOKEN_RBRACK 8
+    #define TOKEN_NUMBER 9
+    #define TOKEN_BOOL 10
+    #define TOKEN_NULL 11
 
     char **token_names;
+
+    int token_ct;
+    int invalid_ct;
 }
 
 NUMBER      -?(0|[1-9][0-9]*)(\.[0-9]+)?(E|e[-+]?[0-9]+)?
@@ -22,13 +27,18 @@ WS          [ \r\n\t]*
 
 %%
 
-"{"         {return TOKEN_LBRACE;}
-"}"         {return TOKEN_RBRACE;}
-{STRING}    {return TOKEN_STRING;}
-{NUMBER}    {return TOKEN_NUMBER;}
-":"         {return TOKEN_COLON;}
+"{"         {token_ct++;return TOKEN_LBRACE;}
+"}"         {token_ct++;return TOKEN_RBRACE;}
+"["         {token_ct++;return TOKEN_LBRACK;}
+"]"         {token_ct++;return TOKEN_RBRACK;}
+{BOOL}      {token_ct++;return TOKEN_BOOL;}
+{NULL}      {token_ct++;return TOKEN_NULL;}
+{STRING}    {token_ct++;return TOKEN_STRING;}
+{NUMBER}    {token_ct++;return TOKEN_NUMBER;}
+":"         {token_ct++;return TOKEN_COLON;}
+","         {token_ct++;return TOKEN_COMMA;}
 {WS}        /* discard whitespace */
-.           {return TOKEN_INVALID;}
+.           {token_ct++;invalid_ct++;return TOKEN_INVALID;}
 
 %%
 
@@ -43,6 +53,8 @@ void init() {
     token_names[TOKEN_LBRACK] = "LBRACK";
     token_names[TOKEN_RBRACK] = "RBRACK";
     token_names[TOKEN_NUMBER] = "NUMBER";
+    token_names[TOKEN_BOOL] = "BOOL";
+    token_names[TOKEN_NULL] = "NULL";
 }
 
 void done() {
@@ -51,7 +63,8 @@ void done() {
 
 int main() {
     init();
-    for(int token = yylex();;token = yylex()) {printf("<%s>\n",token_names[token]);}
+    for(int token = yylex();token;token = yylex()) {printf("<%s>\n",token_names[token]);}
+    printf("Parsed %d token(s), %d of which were invalid.\n", token_ct, invalid_ct);
     done();
 }
 
