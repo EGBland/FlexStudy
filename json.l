@@ -13,6 +13,8 @@
     #define TOKEN_BOOL 10
     #define TOKEN_NULL 11
 
+    #define DEBUG_INVALID_TOKENS 1
+
     char **token_names;
 
     int token_ct;
@@ -20,7 +22,7 @@
 }
 
 NUMBER      -?(0|[1-9][0-9]*)(\.[0-9]+)?(E|e[-+]?[0-9]+)?
-STRING      \"([^\"|\\|[:cntrl:]]|(\\([\"\\\/bfnrt]|u[0-9]{4})))*\"
+STRING      \"([^\"\\[:cntrl:]]|(\\([\"\\\/bfnrt]|u[0-9]{4})))*\"
 BOOL        true|false
 NULL        null
 WS          [ \r\n\t]*
@@ -63,7 +65,15 @@ void done() {
 
 int main() {
     init();
-    for(int token = yylex();token;token = yylex()) {printf("<%s>\n",token_names[token]);}
+    for(int token = yylex();token;token = yylex()) {
+        #if DEBUG_INVALID_TOKENS
+        if(token == TOKEN_INVALID) {
+            printf("<INVALID:%s>\n",yytext);
+        }
+        #else
+        printf("<%s>\n",token_names[token]);
+        #endif
+    }
     printf("Parsed %d token(s), %d of which were invalid.\n", token_ct, invalid_ct);
     done();
 }
