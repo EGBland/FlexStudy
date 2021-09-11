@@ -1,0 +1,12 @@
+identifier newline arrow
+S WL RL W WL' R RL'
+S -> WL newline WL newline RL
+WL -> W WL'
+WL ->
+WL' -> WL
+WL' ->
+W -> identifier
+RL -> R newline RL'
+RL' -> RL
+RL' ->
+R -> W arrow WL
